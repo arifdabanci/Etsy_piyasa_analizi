@@ -45,7 +45,7 @@ def analyze_with_ai(products):
     Raporu Türkçe ve profesyonel bir dille hazırla.
     """
     
-    # STRATEJİK HAMLE: Kütüphane kullanmadan doğrudan sunucuya bağlanıyoruz (REST API)
+    # Kütüphane kullanmadan doğrudan sunucuya bağlanıyoruz (REST API)
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {'Content-Type': 'application/json'}
     data = {
@@ -54,12 +54,30 @@ def analyze_with_ai(products):
     
     try:
         response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status() # Eğer hata çıkarsa direkt except bloğuna atlar
+        response.raise_for_status()
         result = response.json()
         return result['candidates'][0]['content']['parts'][0]['text']
     except Exception as e:
-        # Hata detayını mailde görebilmemiz için detayı yakalıyoruz
         error_detail = response.text if 'response' in locals() else 'Bağlantı kurulamadı'
         return f"Yapay zeka analizi sırasında hata oluştu:\n{str(e)}\n\nDetay:\n{error_detail}"
 
 def send_mail(report_content):
+    msg = EmailMessage()
+    msg['Subject'] = "Günlük Etsy Piyasa Analiz Raporu"
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = RECEIVER_EMAIL
+    msg.set_content(report_content)
+
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            smtp.send_message(msg)
+        print("Mail başarıyla gönderildi.")
+    except Exception as e:
+        print(f"Mail gönderimi başarısız: {str(e)}")
+
+if __name__ == "__main__":
+    print("Sistem başlatılıyor...")
+    products = get_etsy_trends()
+    report = analyze_with_ai(products)
+    send_mail(report)
