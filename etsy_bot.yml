@@ -17,11 +17,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies in Virtual Environment
+      # DİKKAT: requirements.txt kullanmıyoruz. Doğrudan ve zorla kuruyoruz.
+      - name: Bulletproof Install
         run: |
           python -m venv venv
           source venv/bin/activate
           python -m pip install --upgrade pip
+          pip uninstall -y google-generativeai
           pip install requests beautifulsoup4 google-genai
 
       - name: Run Python script
