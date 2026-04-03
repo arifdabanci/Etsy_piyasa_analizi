@@ -17,11 +17,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      # En basit ve doğrudan kurulum. requirements.txt bile aramasına gerek yok.
+      # Sadece temel internet kütüphanelerini kuruyoruz (Google paketi silindi)
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 google-generativeai
+          pip install requests beautifulsoup4
 
       - name: Run Python script
         env:
