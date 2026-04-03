@@ -46,7 +46,9 @@ def analyze_with_ai(products):
     """
     
     # Kütüphane kullanmadan doğrudan sunucuya bağlanıyoruz (REST API)
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"    headers = {'Content-Type': 'application/json'}
+    # Hem satırları ayırdık hem de modeli garanti olan gemini-pro ile değiştirdik
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
+    headers = {'Content-Type': 'application/json'}
     data = {
         "contents": [{"parts":[{"text": prompt}]}]
     }
