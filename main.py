@@ -3,18 +3,13 @@ import requests
 from bs4 import BeautifulSoup
 import smtplib
 from email.message import EmailMessage
-import google.generativeai as genai # SAĞLAM VE TEST EDİLMİŞ KÜTÜPHANEYE DÖNÜŞ
+import json
 
 # API ve E-posta Ayarları
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL")
-
-# Klasik ve sorunsuz yapılandırma
-genai.configure(api_key=GEMINI_API_KEY)
-# ASIL HATAYI ÇÖZEN SATIR: 404 veren 'gemini-pro' yerine 'gemini-1.5-flash' kullanıyoruz
-model = genai.GenerativeModel('gemini-1.5-flash')
 
 def get_etsy_trends():
     search_url = "https://www.etsy.com/search?q=handmade+handicrafts&explicit=1&ship_to=US"
@@ -49,29 +44,22 @@ def analyze_with_ai(products):
     - Satışları artırmak için 3 somut strateji ver.
     Raporu Türkçe ve profesyonel bir dille hazırla.
     """
+    
+    # STRATEJİK HAMLE: Kütüphane kullanmadan doğrudan sunucuya bağlanıyoruz (REST API)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    headers = {'Content-Type': 'application/json'}
+    data = {
+        "contents": [{"parts":[{"text": prompt}]}]
+    }
+    
     try:
-        response = model.generate_content(prompt)
-        return response.text
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status() # Eğer hata çıkarsa direkt except bloğuna atlar
+        result = response.json()
+        return result['candidates'][0]['content']['parts'][0]['text']
     except Exception as e:
-         return f"Yapay zeka analizi sırasında hata oluştu: {str(e)}"
+        # Hata detayını mailde görebilmemiz için detayı yakalıyoruz
+        error_detail = response.text if 'response' in locals() else 'Bağlantı kurulamadı'
+        return f"Yapay zeka analizi sırasında hata oluştu:\n{str(e)}\n\nDetay:\n{error_detail}"
 
 def send_mail(report_content):
-    msg = EmailMessage()
-    msg['Subject'] = "Günlük Etsy Piyasa Analiz Raporu"
-    msg['From'] = EMAIL_ADDRESS
-    msg['To'] = RECEIVER_EMAIL
-    msg.set_content(report_content)
-
-    try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            smtp.send_message(msg)
-        print("Mail başarıyla gönderildi.")
-    except Exception as e:
-        print(f"Mail gönderimi başarısız: {str(e)}")
-
-if __name__ == "__main__":
-    print("Sistem başlatılıyor...")
-    products = get_etsy_trends()
-    report = analyze_with_ai(products)
-    send_mail(report)
