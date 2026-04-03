@@ -17,14 +17,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      # DİKKAT: requirements.txt kullanmıyoruz. Doğrudan ve zorla kuruyoruz.
-      - name: Bulletproof Install
+      # En basit ve doğrudan kurulum. requirements.txt bile aramasına gerek yok.
+      - name: Install dependencies
         run: |
-          python -m venv venv
-          source venv/bin/activate
           python -m pip install --upgrade pip
-          pip uninstall -y google-generativeai
-          pip install requests beautifulsoup4 google-genai
+          pip install requests beautifulsoup4 google-generativeai
 
       - name: Run Python script
         env:
@@ -32,6 +29,4 @@ jobs:
           EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
-        run: |
-          source venv/bin/activate
-          python main.py
+        run: python main.py
