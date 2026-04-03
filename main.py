@@ -31,6 +31,24 @@ def get_etsy_trends():
     except Exception as e:
         return [f"Etsy verileri çekilirken hata oluştu: {str(e)}"]
 
+def get_working_model():
+    # STRATEJİK HAMLE: Tahmin etmiyoruz, Google'a "Hangi modelin çalışıyor?" diye soruyoruz.
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={GEMINI_API_KEY}"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        models = response.json().get('models', [])
+        
+        # 'generateContent' (metin üretme) destekleyen ilk Gemini modelini bul ve seç
+        for m in models:
+            if 'generateContent' in m.get('supportedGenerationMethods', []) and 'gemini' in m.get('name', '').lower():
+                print(f"Aktif Model Bulundu: {m['name']}")
+                return m['name'] # Örn: 'models/gemini-1.5-flash' döner
+    except Exception as e:
+        print(f"Model listesi çekilemedi, varsayılan deneniyor. Hata: {str(e)}")
+        
+    return "models/gemini-1.5-flash" # Hiçbir şey bulamazsa acil durum varsayılanı
+
 def analyze_with_ai(products):
     prompt = f"""
     Sen bir Etsy ticaret stratejistisin. Aşağıdaki verileri analiz et:
@@ -45,40 +63,15 @@ def analyze_with_ai(products):
     Raporu Türkçe ve profesyonel bir dille hazırla.
     """
     
-    # Kütüphane kullanmadan doğrudan sunucuya bağlanıyoruz (REST API)
-    # Hem satırları ayırdık hem de modeli garanti olan gemini-pro ile değiştirdik
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
-    headers = {'Content-Type': 'application/json'}
-    data = {
-        "contents": [{"parts":[{"text": prompt}]}]
-    }
-    
     try:
-        response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
-        result = response.json()
-        return result['candidates'][0]['content']['parts'][0]['text']
-    except Exception as e:
-        error_detail = response.text if 'response' in locals() else 'Bağlantı kurulamadı'
-        return f"Yapay zeka analizi sırasında hata oluştu:\n{str(e)}\n\nDetay:\n{error_detail}"
-
-def send_mail(report_content):
-    msg = EmailMessage()
-    msg['Subject'] = "Günlük Etsy Piyasa Analiz Raporu"
-    msg['From'] = EMAIL_ADDRESS
-    msg['To'] = RECEIVER_EMAIL
-    msg.set_content(report_content)
-
-    try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-            smtp.send_message(msg)
-        print("Mail başarıyla gönderildi.")
-    except Exception as e:
-        print(f"Mail gönderimi başarısız: {str(e)}")
-
-if __name__ == "__main__":
-    print("Sistem başlatılıyor...")
-    products = get_etsy_trends()
-    report = analyze_with_ai(products)
-    send_mail(report)
+        # 1. Adım: Çalışan güncel model ismini otomatik al
+        model_name = get_working_model()
+        
+        # 2. Adım: O modele tam isabet isteği yolla
+        url = f"https://generativelanguage.googleapis.com/v1beta/{model_name}:generateContent?key={GEMINI_API_KEY}"
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            "contents": [{"parts":[{"text": prompt}]}]
+        }
+        
+        response = requests.post(url
