@@ -3,7 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import smtplib
 from email.message import EmailMessage
-from google import genai
+import google.generativeai as genai # SAĞLAM VE TEST EDİLMİŞ KÜTÜPHANEYE DÖNÜŞ
 
 # API ve E-posta Ayarları
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -11,7 +11,10 @@ EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL")
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+# Klasik ve sorunsuz yapılandırma
+genai.configure(api_key=GEMINI_API_KEY)
+# ASIL HATAYI ÇÖZEN SATIR: 404 veren 'gemini-pro' yerine 'gemini-1.5-flash' kullanıyoruz
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 def get_etsy_trends():
     search_url = "https://www.etsy.com/search?q=handmade+handicrafts&explicit=1&ship_to=US"
@@ -47,10 +50,7 @@ def analyze_with_ai(products):
     Raporu Türkçe ve profesyonel bir dille hazırla.
     """
     try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt,
-        )
+        response = model.generate_content(prompt)
         return response.text
     except Exception as e:
          return f"Yapay zeka analizi sırasında hata oluştu: {str(e)}"
